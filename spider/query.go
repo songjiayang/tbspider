@@ -8,8 +8,8 @@ import (
 
 type SortType int
 
-func (this SortType) String() string {
-	switch this {
+func (st SortType) String() string {
+	switch st {
 	case 0:
 		return "renqi-desc"
 	case 1:
@@ -27,12 +27,12 @@ func (this SortType) String() string {
 
 type Price float64
 
-func (this Price) String() string {
-	if this == 0 {
+func (p Price) String() string {
+	if p == 0 {
 		return ""
 	}
 
-	return fmt.Sprintf("%0.2f", this)
+	return fmt.Sprintf("%0.2f", p)
 }
 
 type Query struct {
@@ -50,42 +50,42 @@ type Query struct {
 	values url.Values
 }
 
-func (this *Query) IsValid() bool {
-	return this.Kw != ""
+func (q *Query) IsValid() bool {
+	return q.Kw != ""
 }
 
-func (this *Query) Values() url.Values {
-	if this.values != nil {
-		return this.values
+func (q *Query) Values() url.Values {
+	if q.values != nil {
+		return q.values
 	}
 
 	v := url.Values{}
 
-	v.Set("q", this.Kw)
-	v.Set("sort", this.SType.String())
+	v.Set("q", q.Kw)
+	v.Set("sort", q.SType.String())
 
-	if this.MinPrice > 0 || this.MaxPrice > 0 {
-		v.Set("filter", fmt.Sprintf("reserve_price[%s,%s]", this.MinPrice, this.MaxPrice))
+	if q.MinPrice > 0 || q.MaxPrice > 0 {
+		v.Set("filter", fmt.Sprintf("reserve_price[%s,%s]", q.MinPrice, q.MaxPrice))
 	}
 
-	if this.Loc != "" {
-		v.Set("loc", this.Loc)
+	if q.Loc != "" {
+		v.Set("loc", q.Loc)
 	}
 
-	if this.IsTMall {
+	if q.IsTMall {
 		v.Set("tab", "mall")
 	}
 
-	this.values = v
+	q.values = v
 
 	return v
 }
 
-func (this *Query) SetSkip(skip int) {
-	this.Skip = skip
-	this.values.Set("s", strconv.Itoa(skip))
+func (q *Query) SetSkip(skip int) {
+	q.Skip = skip
+	q.values.Set("s", strconv.Itoa(skip))
 }
 
-func (this *Query) IsFinish() bool {
-	return this.Skip > this.Limit
+func (q *Query) IsFinish() bool {
+	return q.Skip > q.Limit
 }

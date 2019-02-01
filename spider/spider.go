@@ -1,36 +1,48 @@
 package spider
 
 import (
+	"errors"
 	"fmt"
+	"github.com/Pallinder/go-randomdata"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"time"
-
-	randomdata "github.com/Pallinder/go-randomdata"
 )
 
 type Spider struct {
 	query *Query
 
+	headers  http.Header
 	items    []*Item
 	isFinish bool
 }
 
-func NewSpider(query *Query) *Spider {
+func NewSpider(query *Query, cookieFile string) *Spider {
+	// get default headers
+	headers := http.Header{}
+	headers.Add("Referer", "https://s.taobao.com")
+	// set cookie jar
+	cookie, err := ioutil.ReadFile(cookieFile)
+	if err != nil {
+		log.Panicf("load cookie jar with error: %v \n", err)
+	}
+	headers.Add("cookie", string(cookie))
+
 	return &Spider{
-		query: query,
-		items: make([]*Item, 0),
+		query:   query,
+		headers: headers,
+		items:   make([]*Item, 0),
 	}
 }
 
-func (this *Spider) Result() []*Item {
-	return this.items
+func (s *Spider) Result() []*Item {
+	return s.items
 }
 
-func (this *Spider) Run() error {
-
-	for !this.isFinish {
-		body, err := this.fetch()
+func (s *Spider) Run() error {
+	for !s.isFinish {
+		body, err := s.fetch()
 		if err != nil {
 			return err
 		}
@@ -40,26 +52,27 @@ func (this *Spider) Run() error {
 			return err
 		}
 
-		this.items = append(this.items, items...)
+		s.items = append(s.items, items...)
 
-		this.query.SetSkip(this.query.Skip + len(items))
-		this.isFinish = (len(items) == 0 || this.query.IsFinish())
+		l := len(items)
+		s.query.SetSkip(s.query.Skip + l)
+		s.isFinish = (l == 0 || s.query.IsFinish())
 
-		time.Sleep(time.Second)
+		time.Sleep(3 * time.Second)
 	}
 
 	return nil
 }
 
-func (this *Spider) fetch() (body []byte, err error) {
-	req, err := http.NewRequest("GET", this.page(), nil)
+func (s *Spider) fetch() (body []byte, err error) {
+	req, err := http.NewRequest("GET", s.page(), nil)
 	if err != nil {
 		return
 	}
 
-	req.Header.Add("User-Agent", randomdata.UserAgentString())
-	req.Header.Add("Host", randomdata.IpV4Address())
-	req.Header.Add("Referer", "https://s.taobao.com")
+	req.Header = s.headers
+	req.Header.Set("User-Agent", randomdata.UserAgentString())
+	req.Header.Set("Host", randomdata.IpV4Address())
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -67,11 +80,13 @@ func (this *Spider) fetch() (body []byte, err error) {
 	}
 	defer resp.Body.Close()
 
-	body, err = ioutil.ReadAll(resp.Body)
+	if resp.StatusCode/100 != 2 {
+		return nil, errors.New("Cookie expired")
+	}
 
-	return
+	return ioutil.ReadAll(resp.Body)
 }
 
-func (this *Spider) page() string {
-	return fmt.Sprintf("https://s.taobao.com/search?%s", this.query.Values().Encode())
+func (s *Spider) page() string {
+	return fmt.Sprintf("https://s.taobao.com/search?%s", s.query.Values().Encode())
 }

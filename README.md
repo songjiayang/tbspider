@@ -19,7 +19,8 @@ func main() {
 	q := &spider.Query{
 		Kw: "袜子",
 	}
-	worker := spider.NewSpider(q)
+	
+	worker := spider.NewSpider(q, "./cookie")
 
 	err := worker.Run()
 	if err != nil {
@@ -37,6 +38,8 @@ func main() {
 $ tbspider -h
 
 Usage of tbspider:
+  -cookie string
+    	淘宝登录cookie (default "./cookie")
   -l int
     	最多获取商品数量 (default 200)
   -loc string
@@ -51,6 +54,7 @@ Usage of tbspider:
     	查询关键词
   -sort int
     	商品排序，可选参数: 0 人气, 1 销量，2 信用，3 价格由低到高，4 价格由高到低
+    	
 ```
 
 when you run `tbspider -q 袜子`, you will get data in filename `袜子-2017xxxx.json`.

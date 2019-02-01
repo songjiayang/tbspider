@@ -1,2 +1,4 @@
 *.json
 pkg
+cookie
+.idea
